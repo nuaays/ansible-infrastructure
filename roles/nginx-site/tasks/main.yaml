@@ -1,0 +1,83 @@
+---
+- set_fact: nginx_site_path=/var/www/{{ nginx_site.name }}
+
+- name: ensure site path exists
+  file:
+    path: "{{ nginx_site_path }}"
+    state: directory
+    mode: 0755
+
+- name: clone project into site path
+  git:
+    repo: "{{ nginx_site.repo }}"
+    dest: "{{ nginx_site_path }}"
+    remote: origin
+    version: master
+  notify: restart gunicorn
+
+- name: install virtualenv
+  pip:
+    name: "{{ item.name }}"
+    extra_args: "{{ item.args }}"
+    chdir: "{{ nginx_site_path }}"
+    virtualenv: "{{ nginx_site_path }}/{{ virtualenv_name }}"
+    virtualenv_command: "{{ virtualenv_command }}"
+  with_items:
+  - { name: 'gunicorn', args: '' }
+  - { name: '.', args: '-e' }
+
+- name: add gunicorn settings path to virtualenv
+  copy:
+    content: /etc/gunicorn
+    dest: "{{ nginx_site_path }}/env/lib/{{ virtualenv_python }}/site-packages/gunicorn.pth"
+
+- name: gunicorn settings
+  template:
+    src: "gunicorn_{{ item }}.py"
+    dest: "/etc/gunicorn/{{ nginx_site.name }}_{{ item }}.py"
+    mode: 0644
+  with_items:
+  - wsgi
+  - conf
+  notify: restart gunicorn
+
+- name: supervisor settings
+  template:
+    src: supervisor.conf
+    dest: "/etc/supervisor/conf.d/{{ nginx_site.name }}.gunicorn.conf"
+    mode: 0644
+  notify: add gunicorn to supervisor
+
+- name: nginx settings
+  template:
+    src: nginx.conf
+    dest: "/etc/nginx/sites-available/{{ nginx_site.name }}"
+    mode: 0644
+  notify: reload nginx
+
+- name: enable nginx site
+  file:
+    src: "/etc/nginx/sites-available/{{ nginx_site.name }}"
+    dest: "/etc/nginx/sites-enabled/{{ nginx_site.name }}"
+    state: link
+  notify: reload nginx
+
+- set_fact: nginx_site_db=/var/lib/sqlite/{{ nginx_site.name }}.db
+
+- name: check if database exists
+  stat: path={{ nginx_site_db }}
+  register: sqlite_db
+  changed_when: no
+
+- name: set up database
+  include: sqlite.yml
+  when: sqlite_db.stat.exists is defined and not sqlite_db.stat.exists
+
+- name: ensure database has correct permissions
+  file:
+    path: "{{ nginx_site_db }}"
+    state: file
+    mode: 0775
+    owner: "{{ www_user }}"
+    group: "{{ www_group }}"
+  notify: restart gunicorn  # oops, this would be bad

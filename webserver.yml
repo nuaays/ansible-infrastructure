@@ -1,0 +1,17 @@
+---
+- hosts: all
+  become_method: sudo
+  become_user: root
+  become: yes
+  vars:
+    www_user: www-data
+    www_group: adm
+    nginx_site:
+      name: example
+      repo: /vagrant/.git/
+      key: my_secret_key
+      port: 8080
+      server: localhost
+  roles:
+  - nginx
+  - nginx-site

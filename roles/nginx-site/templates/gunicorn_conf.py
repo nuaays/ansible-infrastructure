@@ -1,0 +1,8 @@
+chdir = '{{ nginx_site_path }}'
+bind = '{{ bind }}'
+pidfile = '{{ pid_file }}'
+user = '{{ www_user }}'
+group = '{{ www_group }}'
+loglevel = 'info'
+errorlog = '/var/log/gunicorn/{{ nginx_site.name }}-error.log'
+accesslog = '/var/log/gunicorn/{{ nginx_site.name }}-access.log'

@@ -1,0 +1,11 @@
+---
+- name: create an initial database
+  command: "{{ nginx_site_path }}/{{ virtualenv_name }}/bin/reset_db"
+  args:
+    creates: "/tmp/{{ nginx_site.name }}.db"
+
+- name: move initial database to production
+  command: "mv /tmp/{{ nginx_site.name }}.db {{ nginx_site_db }}"
+  args:
+    creates: "{{ nginx_site_db }}"
+  notify: restart gunicorn

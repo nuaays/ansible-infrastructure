@@ -1,0 +1,9 @@
+---
+- name: reload nginx
+  command: systemctl reload nginx
+
+- name: add gunicorn to supervisor
+  supervisorctl: name={{ nginx_site.name }} state=present
+
+- name: restart gunicorn
+  supervisorctl: name={{ nginx_site.name }} state=restarted

@@ -1,0 +1,37 @@
+---
+- name: install dependencies
+  apt: name={{ item }} state=present update_cache=yes
+  with_items: nginx_dependencies
+
+- name: enable nginx on boot
+  command: systemctl enable nginx
+
+- name: start nginx now
+  command: systemctl start nginx
+
+- name: supervisor config
+  copy:
+    src: supervisord.conf
+    dest: /etc/supervisor/supervisord.conf
+    mode: 0644
+
+- name: ensure root-owned folders exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0755
+  with_items:
+  - /etc/gunicorn
+  - /run/gunicorn
+  - /var/www
+
+- name: ensure www_user-owned folders exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0750
+    owner: "{{ www_user }}"
+    group: "{{ www_group }}"
+  with_items:
+  - /var/lib/sqlite
+  - /var/log/gunicorn

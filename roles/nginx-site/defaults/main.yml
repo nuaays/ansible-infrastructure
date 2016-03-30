@@ -1,0 +1,5 @@
+bind: unix:/run/gunicorn/{{ nginx_site.name }}.sock
+pid_file: /run/gunicorn/{{ nginx_site.name }}.pid
+virtualenv_command: pyvenv
+virtualenv_name: env
+virtualenv_python: python3.4
